@@ -37,8 +37,31 @@ export const AuthProvider = ({ children }) => {
 
   const signupUser = async (signupData) => {
     const res = await authService.signup(signupData);
-    // Do NOT automatically set isAuthenticated = true so user must log in after signup
     return res.user;
+  };
+
+  const switchRole = (newRole) => {
+    if (!currentUser) {
+      const mockUser = { id: `usr_${Date.now()}`, name: 'Demo User', email: `${newRole.toLowerCase()}@qparkinson.org`, role: newRole, status: 'ACTIVE' };
+      setCurrentUser(mockUser);
+      setIsAuthenticated(true);
+      try {
+        localStorage.setItem('q_parkinson_user', JSON.stringify(mockUser));
+        localStorage.setItem('q_parkinson_token', `q_parkinson_token_${Date.now()}`);
+      } catch (e) {
+        console.warn('LocalStorage save failed:', e);
+      }
+      return mockUser;
+    }
+    const updatedUser = { ...currentUser, role: newRole };
+    try {
+      localStorage.setItem('q_parkinson_user', JSON.stringify(updatedUser));
+    } catch (e) {
+      console.warn('LocalStorage save failed:', e);
+    }
+    setCurrentUser(updatedUser);
+    setIsAuthenticated(true);
+    return updatedUser;
   };
 
   const logout = () => {
@@ -58,6 +81,7 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated,
       loginUser,
       signupUser,
+      switchRole,
       logout
     }}>
       {children}

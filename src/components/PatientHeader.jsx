@@ -1,7 +1,8 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { Search, Bell, ShieldCheck, HeartPulse } from 'lucide-react';
+import { Search, HeartPulse } from 'lucide-react';
+import { RoleSwitcher } from './RoleSwitcher';
 
 export const PatientHeader = () => {
   const { currentUser } = useAuth();
@@ -21,7 +22,7 @@ export const PatientHeader = () => {
       zIndex: 90
     }}>
       {/* Search */}
-      <div style={{ position: 'relative', width: '340px' }}>
+      <div style={{ position: 'relative', width: '300px' }}>
         <Search size={16} style={{
           position: 'absolute',
           left: '0.85rem',
@@ -31,7 +32,7 @@ export const PatientHeader = () => {
         }} />
         <input
           type="text"
-          placeholder="Search assessment results, trends, features..."
+          placeholder="Search assessment results, trends..."
           className="input-field"
           style={{
             paddingLeft: '2.4rem',
@@ -42,10 +43,12 @@ export const PatientHeader = () => {
         />
       </div>
 
-      {/* Right Telemetry Badge & User Profile */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+      {/* Role Switcher & User Profile */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <RoleSwitcher />
+
         <div className="badge badge-info font-mono" style={{ padding: '0.35rem 0.75rem' }}>
-          <HeartPulse size={13} color="#2563EB" /> RISK ASSESSMENT TELEMETRY ONLINE
+          <HeartPulse size={13} color="#2563EB" /> PATIENT TELEMETRY ONLINE
         </div>
 
         <div style={{ width: '1px', height: '24px', backgroundColor: '#E2E8F0' }} />

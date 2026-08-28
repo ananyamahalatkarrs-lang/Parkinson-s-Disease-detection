@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { Search, Bell, Stethoscope, ShieldCheck } from 'lucide-react';
+import { RoleSwitcher } from '../../../components/RoleSwitcher';
 
 export const ClinicianHeader = () => {
   const { currentUser } = useAuth();
@@ -19,7 +20,7 @@ export const ClinicianHeader = () => {
       zIndex: 90
     }}>
       {/* Global Clinical Search */}
-      <div style={{ position: 'relative', width: '340px' }}>
+      <div style={{ position: 'relative', width: '300px' }}>
         <Search size={16} style={{
           position: 'absolute',
           left: '0.85rem',
@@ -29,7 +30,7 @@ export const ClinicianHeader = () => {
         }} />
         <input
           type="text"
-          placeholder="Search patients, assessment IDs, trends..."
+          placeholder="Search patients, assessment IDs..."
           className="input-field"
           style={{
             paddingLeft: '2.4rem',
@@ -41,41 +42,14 @@ export const ClinicianHeader = () => {
       </div>
 
       {/* Right Action Icons & Profile */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <RoleSwitcher />
+
         <div className="badge badge-info font-mono" style={{ padding: '0.35rem 0.75rem' }}>
           <ShieldCheck size={13} color="#2563EB" /> DECISION SUPPORT ACTIVE
         </div>
 
         <div style={{ width: '1px', height: '24px', backgroundColor: '#E2E8F0' }} />
-
-        {/* Notifications */}
-        <button
-          style={{
-            background: '#F8FAFC',
-            border: '1px solid #E2E8F0',
-            color: '#475569',
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            position: 'relative'
-          }}
-          title="Clinical Notifications"
-        >
-          <Bell size={16} />
-          <span style={{
-            position: 'absolute',
-            top: '6px',
-            right: '6px',
-            width: '7px',
-            height: '7px',
-            backgroundColor: '#2563EB',
-            borderRadius: '50%'
-          }} />
-        </button>
 
         {/* Doctor Profile Tag */}
         <div style={{
@@ -89,7 +63,7 @@ export const ClinicianHeader = () => {
         }}>
           <Stethoscope size={16} color="#2563EB" />
           <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0F172A' }}>
-            Dr. Aris Thorne
+            {currentUser?.name || 'Dr. Aris Thorne'}
           </div>
         </div>
       </div>

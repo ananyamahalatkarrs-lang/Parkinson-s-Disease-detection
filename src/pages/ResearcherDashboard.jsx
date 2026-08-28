@@ -18,6 +18,7 @@ import {
   Layers
 } from 'lucide-react';
 import { BRAND_TEXT } from '../modules/Auth/utils/authConstants';
+import { RoleSwitcher } from '../components/RoleSwitcher';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -202,12 +203,15 @@ export default function ResearcherDashboard() {
       {/* Main Content Viewport */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <header style={{ height: '64px', backgroundColor: '#FFFFFF', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.75rem', position: 'sticky', top: 0, zIndex: 90 }}>
-          <div style={{ position: 'relative', width: '340px' }}>
+          <div style={{ position: 'relative', width: '300px' }}>
             <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
             <input type="text" placeholder="Search datasets, hyperparameters, quantum circuits..." className="input-field" style={{ paddingLeft: '2.4rem', fontSize: '0.825rem', height: '36px', backgroundColor: '#F8FAFC' }} />
           </div>
-          <div className="badge badge-cyan font-mono" style={{ padding: '0.35rem 0.75rem' }}>
-            <Atom size={13} color="#06B6D4" /> 4-QUBIT ZZFEATUREMAP QSVC ACTIVE
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <RoleSwitcher />
+            <div className="badge badge-cyan font-mono" style={{ padding: '0.35rem 0.75rem' }}>
+              <Atom size={13} color="#06B6D4" /> 4-QUBIT ZZFEATUREMAP QSVC ACTIVE
+            </div>
           </div>
         </header>
 
