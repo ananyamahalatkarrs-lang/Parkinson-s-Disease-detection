@@ -1,38 +1,89 @@
 import React from 'react';
-import { Stethoscope } from 'lucide-react';
+import { UserCheck, Stethoscope, Atom, ShieldCheck } from 'lucide-react';
 
-export const RoleSelector = ({ selectedRole = 'Clinician', onSelectRole, label = 'Account Role' }) => {
+export const RoleSelector = ({ selectedRole = 'Patient', onSelectRole, label = 'SELECT YOUR ROLE' }) => {
+  const roles = [
+    {
+      id: 'Patient',
+      title: 'Patient / Individual',
+      subtitle: 'Personal Risk Telemetry & Health History',
+      icon: UserCheck
+    },
+    {
+      id: 'Clinician',
+      title: 'Doctor / Clinician',
+      subtitle: 'Clinical Decision Support & Patient Monitoring',
+      icon: Stethoscope
+    },
+    {
+      id: 'Researcher',
+      title: 'Researcher',
+      subtitle: 'Quantum ML Lab & Dataset Analytics',
+      icon: Atom
+    },
+    {
+      id: 'Admin',
+      title: 'Administrator',
+      subtitle: 'System Control Center & Audit Telemetry',
+      icon: ShieldCheck
+    }
+  ];
+
   return (
     <div style={{ marginBottom: '1.25rem' }}>
       <label style={{
         display: 'block',
-        fontSize: '0.8rem',
-        fontWeight: 600,
-        color: 'var(--text-secondary)',
-        marginBottom: '0.5rem'
-      }}>
+        fontSize: '0.725rem',
+        fontWeight: 700,
+        color: 'var(--text-muted)',
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        marginBottom: '0.65rem'
+      }} className="font-mono">
         {label}
       </label>
 
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.65rem',
-        padding: '0.75rem 1rem',
-        borderRadius: 'var(--radius-md)',
-        backgroundColor: 'var(--bg-very-light-blue)',
-        border: '2px solid var(--primary-blue)',
-        color: 'var(--primary-blue)'
-      }}>
-        <Stethoscope size={20} color="var(--primary-blue)" />
-        <div>
-          <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Doctor / Clinician
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            Clinical Decision Support & Patient Monitoring
-          </div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+        {roles.map((r) => {
+          const Icon = r.icon;
+          const isSelected = (selectedRole || '').toLowerCase() === r.id.toLowerCase() ||
+                             (selectedRole === 'Doctor' && r.id === 'Clinician');
+
+          return (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => onSelectRole && onSelectRole(r.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.65rem',
+                padding: '0.75rem 0.85rem',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: isSelected ? 'var(--bg-very-light-blue)' : '#FFFFFF',
+                border: isSelected ? '2px solid var(--primary-blue)' : '1px solid var(--border)',
+                color: isSelected ? 'var(--primary-blue)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.15s ease-in-out'
+              }}
+            >
+              <Icon size={20} color={isSelected ? 'var(--primary-blue)' : '#94A3B8'} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <div style={{
+                  fontSize: '0.825rem',
+                  fontWeight: 700,
+                  color: isSelected ? 'var(--primary-blue)' : 'var(--text-primary)'
+                }}>
+                  {r.title}
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.3 }}>
+                  {r.subtitle}
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
-// API Service Layer — connects to FastAPI backend or uses mock data
+// API Service Layer — connects to Express REST backend or uses mock data
 
-const BASE_URL = import.meta.env.VITE_API_URL || null;
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export const DEMO_PATIENT = {
   name: 'Alex Morgan',
@@ -111,55 +111,78 @@ export const MOCK_RESULTS = [
 ];
 
 async function apiCall(endpoint, options = {}) {
-  if (!BASE_URL) return null;
   try {
     const res = await fetch(`${BASE_URL}${endpoint}`, {
       headers: { 'Content-Type': 'application/json' },
       ...options,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  } catch {
+    return await res.json();
+  } catch (err) {
     return null;
   }
 }
 
 export const api = {
-  getProfile: () => apiCall('/api/patient/profile'),
-  getResults: () => apiCall('/api/patient/results'),
-  getResult: (id) => apiCall(`/api/patient/results/${id}`),
-  updateProfile: (data) => apiCall('/api/patient/profile', { method: 'PUT', body: JSON.stringify(data) }),
-  submitAssessment: (data) => apiCall('/api/patient/assessment', { method: 'POST', body: JSON.stringify(data) }),
-  predict: (data) => apiCall('/api/patient/predict', { method: 'POST', body: JSON.stringify(data) }),
+  getProfile: () => apiCall('/api/users/profile'),
+  getResults: () => apiCall('/api/patients/PT-1024/assessments'),
+  getResult: (id) => apiCall(`/api/assessments/${id}/explanation`),
+  updateProfile: (data) => apiCall('/api/users/profile', { method: 'PUT', body: JSON.stringify(data) }),
+  submitAssessment: (data) => apiCall('/api/assessments', { method: 'POST', body: JSON.stringify(data) }),
+  predict: (data) => apiCall('/api/assessments', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 export function simulateAnalysis(features) {
   return new Promise((resolve) => {
-    setTimeout(() => {
-      const vals = Object.values(features);
-      const jitter = features['MDVP:Jitter(%)'] || 0;
-      const ppe = features['PPE'] || 0;
-      const rpde = features['RPDE'] || 0;
-      const score = Math.min(100, Math.round((jitter * 3000 + ppe * 60 + rpde * 30) + 20));
-      const riskLevel = score >= 60 ? 'High' : score >= 40 ? 'Moderate' : 'Low';
-      resolve({
-        id: `r${Date.now()}`,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        riskLevel,
-        riskScore: score,
-        classical_svm: { result: score >= 50 ? 'Elevated Risk' : 'Lower Risk', confidence: 0.68 + Math.random() * 0.15 },
-        random_forest: { result: score >= 50 ? 'Elevated Risk' : 'Lower Risk', confidence: 0.70 + Math.random() * 0.15 },
-        quantum_ml: { result: score >= 50 ? 'Elevated Risk' : 'Lower Risk', confidence: 0.65 + Math.random() * 0.15 },
-        hybrid: { result: score >= 50 ? 'Elevated Risk' : 'Lower Risk', confidence: 0.72 + Math.random() * 0.15 },
-        featureImportance: [
-          { feature: 'PPE', importance: Math.min(0.99, ppe * 2 + 0.3) },
-          { feature: 'spread1', importance: Math.min(0.99, Math.abs(features['spread1'] || -4) / 6) },
-          { feature: 'RPDE', importance: Math.min(0.99, rpde + 0.1) },
-          { feature: 'MDVP:Jitter(%)', importance: Math.min(0.99, jitter * 80 + 0.2) },
-          { feature: 'HNR', importance: Math.min(0.99, (30 - (features['HNR'] || 20)) / 30) },
-          { feature: 'DFA', importance: Math.min(0.99, (features['DFA'] || 0.7) * 0.6) },
-        ],
-      });
-    }, 4500);
+    // Attempt backend prediction REST call first
+    apiCall('/api/assessments', {
+      method: 'POST',
+      body: JSON.stringify({ patientId: 'PT-1024', features })
+    }).then(response => {
+      if (response && response.success && response.data) {
+        const d = response.data;
+        resolve({
+          id: d._id || d.id || `r${Date.now()}`,
+          date: d.assessmentDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          riskLevel: d.riskLevel || 'Moderate',
+          riskScore: d.riskScore || 62,
+          classical_svm: d.modelOutputs?.classical_svm || { result: 'Elevated Risk', confidence: 0.68 },
+          random_forest: d.modelOutputs?.random_forest || { result: 'Elevated Risk', confidence: 0.71 },
+          quantum_ml: d.modelOutputs?.quantum_ml || { result: 'Elevated Risk', confidence: 0.65 },
+          hybrid: d.modelOutputs?.hybrid || { result: 'Elevated Risk', confidence: 0.72 },
+          featureImportance: d.explainability?.featureImportance || [
+            { feature: 'PPE', importance: 0.91 },
+            { feature: 'spread1', importance: 0.78 }
+          ]
+        });
+      } else {
+        // Fallback simulation calculation if API is offline
+        setTimeout(() => {
+          const jitter = features['MDVP:Jitter(%)'] || 0;
+          const ppe = features['PPE'] || 0;
+          const rpde = features['RPDE'] || 0;
+          const score = Math.min(100, Math.round((jitter * 3000 + ppe * 60 + rpde * 30) + 20));
+          const riskLevel = score >= 60 ? 'Elevated' : score >= 40 ? 'Moderate' : 'Low';
+          resolve({
+            id: `r${Date.now()}`,
+            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+            riskLevel,
+            riskScore: score,
+            classical_svm: { result: score >= 50 ? 'Elevated Risk' : 'Lower Risk', confidence: 0.68 },
+            random_forest: { result: score >= 50 ? 'Elevated Risk' : 'Lower Risk', confidence: 0.71 },
+            quantum_ml: { result: score >= 50 ? 'Elevated Risk' : 'Lower Risk', confidence: 0.65 },
+            hybrid: { result: score >= 50 ? 'Elevated Risk' : 'Lower Risk', confidence: 0.72 },
+            featureImportance: [
+              { feature: 'PPE', importance: Math.min(0.99, ppe * 2 + 0.3) },
+              { feature: 'spread1', importance: Math.min(0.99, Math.abs(features['spread1'] || -4) / 6) },
+              { feature: 'RPDE', importance: Math.min(0.99, rpde + 0.1) },
+              { feature: 'MDVP:Jitter(%)', importance: Math.min(0.99, jitter * 80 + 0.2) },
+              { feature: 'HNR', importance: Math.min(0.99, (30 - (features['HNR'] || 20)) / 30) },
+              { feature: 'DFA', importance: Math.min(0.99, (features['DFA'] || 0.7) * 0.6) },
+            ],
+          });
+        }, 3500);
+      }
+    });
   });
 }

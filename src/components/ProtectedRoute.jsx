@@ -3,14 +3,29 @@ import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
 
-export const ProtectedRoute = ({ children, allowedRoles = ['Clinician'] }) => {
+export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { currentUser, isAuthenticated } = useAuth();
 
   if (!isAuthenticated || !currentUser) {
     return <Navigate to="/login" replace />;
   }
 
-  const isAllowed = allowedRoles.length === 0 || allowedRoles.includes(currentUser?.role);
+  if (allowedRoles.length === 0) {
+    return children;
+  }
+
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
+
+  let isAllowed = normalizedAllowed.includes(userRole);
+
+  // Normalize aliases
+  if (normalizedAllowed.includes('doctor') && (userRole === 'clinician' || userRole === 'doctor')) {
+    isAllowed = true;
+  }
+  if (normalizedAllowed.includes('clinician') && (userRole === 'clinician' || userRole === 'doctor')) {
+    isAllowed = true;
+  }
 
   if (!isAllowed) {
     return (
@@ -62,7 +77,7 @@ export const ProtectedRoute = ({ children, allowedRoles = ['Clinician'] }) => {
             lineHeight: 1.6,
             marginBottom: '1.5rem'
           }}>
-            Clinician credentials are required to access this workspace.
+            Your account role [{currentUser?.role || 'User'}] is not authorized to access this workspace.
           </p>
 
           <Link

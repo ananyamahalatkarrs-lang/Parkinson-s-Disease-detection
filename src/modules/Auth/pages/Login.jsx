@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { AuthLayout } from '../components/AuthLayout';
 import { AuthCard } from '../components/AuthCard';
@@ -7,10 +7,11 @@ import { InputField } from '../components/InputField';
 import { PasswordInput } from '../components/PasswordInput';
 import { AuthError } from '../components/AuthError';
 import { validateEmail } from '../utils/validation';
-import { LogIn, Mail } from 'lucide-react';
+import { LogIn, Mail, CheckCircle2 } from 'lucide-react';
 
 export const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { loginUser } = useAuth();
 
   const [email, setEmail] = useState('clinician@qparkinson.org');
@@ -19,6 +20,8 @@ export const Login = () => {
 
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const successMessage = location.state?.message || '';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,8 +40,20 @@ export const Login = () => {
 
     setIsLoading(true);
     try {
-      await loginUser(email, password);
-      navigate('/clinician/dashboard');
+      const user = await loginUser(email, password);
+      const role = (user?.role || '').toLowerCase();
+
+      if (role.includes('patient')) {
+        navigate('/patient/dashboard', { replace: true });
+      } else if (role.includes('doctor') || role.includes('clinician')) {
+        navigate('/doctor/dashboard', { replace: true });
+      } else if (role.includes('researcher')) {
+        navigate('/researcher/dashboard', { replace: true });
+      } else if (role.includes('admin')) {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/doctor/dashboard', { replace: true });
+      }
     } catch (err) {
       setErrorMsg(err.message);
     } finally {
@@ -52,6 +67,25 @@ export const Login = () => {
         title="Welcome back"
         subtitle="Access your Q-PARKINSON workspace"
       >
+        {successMessage && (
+          <div style={{
+            padding: '0.75rem 1rem',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--success)',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <CheckCircle2 size={18} />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
         <AuthError message={errorMsg} />
 
         <form onSubmit={handleSubmit}>

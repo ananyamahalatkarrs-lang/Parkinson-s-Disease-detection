@@ -1,8 +1,11 @@
-// Asynchronous Clinician Service API abstraction
+// Asynchronous Clinician Service API abstraction — connects to Express REST backend or uses mock data
+
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const INITIAL_PATIENTS = [
   {
     id: 'PT-1024',
+    patientIdentifier: 'PT-1024',
     name: 'Patient A (Robert Carter)',
     ageGroup: '60-65',
     latestAssessmentDate: 'Aug 26, 2026',
@@ -20,6 +23,7 @@ const INITIAL_PATIENTS = [
   },
   {
     id: 'PT-1025',
+    patientIdentifier: 'PT-1025',
     name: 'Patient B (Sophia Martinez)',
     ageGroup: '55-60',
     latestAssessmentDate: 'Aug 25, 2026',
@@ -36,6 +40,7 @@ const INITIAL_PATIENTS = [
   },
   {
     id: 'PT-1026',
+    patientIdentifier: 'PT-1026',
     name: 'Patient C (David Miller)',
     ageGroup: '65-70',
     latestAssessmentDate: 'Aug 24, 2026',
@@ -51,6 +56,7 @@ const INITIAL_PATIENTS = [
   },
   {
     id: 'PT-1027',
+    patientIdentifier: 'PT-1027',
     name: 'Patient D (Emma Watson)',
     ageGroup: '50-55',
     latestAssessmentDate: 'Aug 22, 2026',
@@ -66,6 +72,7 @@ const INITIAL_PATIENTS = [
   },
   {
     id: 'PT-1028',
+    patientIdentifier: 'PT-1028',
     name: 'Patient E (James Wilson)',
     ageGroup: '70-75',
     latestAssessmentDate: 'Aug 20, 2026',
@@ -83,10 +90,48 @@ const INITIAL_PATIENTS = [
 
 let patientsStore = [...INITIAL_PATIENTS];
 
+async function apiCall(endpoint, options = {}) {
+  try {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
+}
+
 export const clinicianService = {
   getDashboardOverview: async () => {
-    await new Promise(res => setTimeout(res, 200));
+    const res = await apiCall('/api/doctor/dashboard');
+    if (res && res.success && res.data) {
+      const d = res.data;
+      return {
+        totalPatients: d.summaryMetrics?.totalPatients || 128,
+        assessmentsThisWeek: d.summaryMetrics?.activeAssessmentsCount || 24,
+        followUpsDue: d.summaryMetrics?.followUpsDueCount || 8,
+        newAssessments: 12,
+        longitudinalTrendData: [
+          { date: 'May 2026', baseline: 32, currentSeries: 34, quantumVariational: 33 },
+          { date: 'Jun 2026', baseline: 35, currentSeries: 38, quantumVariational: 36 },
+          { date: 'Jul 2026', baseline: 38, currentSeries: 44, quantumVariational: 41 },
+          { date: 'Aug 2026', baseline: 40, currentSeries: 48, quantumVariational: 45 }
+        ],
+        aiObservations: (d.recentAssessments || []).map(r => ({
+          id: r.id || `obs_${Date.now()}`,
+          title: `${r.patientName} - Telemetry Risk: ${r.risk}`,
+          patient: r.patientName,
+          observation: r.modelOutput || 'Observed feature variance across vocal/motor parameters.',
+          model: 'Hybrid QSVC Engine',
+          date: r.date || 'Aug 26, 2026'
+        }))
+      };
+    }
 
+    // Fallback if backend is offline
+    await new Promise(r => setTimeout(r, 200));
     return {
       totalPatients: 128,
       assessmentsThisWeek: 24,
@@ -120,8 +165,31 @@ export const clinicianService = {
   },
 
   getPatients: async (filters = {}) => {
-    await new Promise(res => setTimeout(res, 220));
+    const queryParams = new URLSearchParams();
+    if (filters.search) queryParams.append('search', filters.search);
+    if (filters.trend && filters.trend !== 'ALL') queryParams.append('status', filters.trend);
 
+    const res = await apiCall(`/api/patients?${queryParams.toString()}`);
+    if (res && res.success && Array.isArray(res.data)) {
+      return res.data.map(p => ({
+        id: p.patientIdentifier || p._id || p.id,
+        name: p.name,
+        ageGroup: p.ageGroup || '60-65',
+        latestAssessmentDate: p.latestAssessmentDate || 'Aug 26, 2026',
+        observedTrend: p.observedTrend || 'Stable',
+        riskLevel: p.riskLevel || 'Moderate',
+        status: p.status || 'Review',
+        assignedClinician: p.assignedClinicianName || 'Dr. Aris Thorne',
+        assessmentHistory: p.assessmentHistory || [
+          { id: 'ASM-9021', date: 'Aug 26, 2026', type: 'Motor & Vocal', trendScore: 42, risk: p.riskLevel || 'Moderate', result: 'Elevated Risk Pattern', modelOutput: 'Spiral Tremor Delta: +0.28' }
+        ],
+        nextFollowUp: p.nextFollowUp || 'Aug 30, 2026',
+        followUpStatus: p.followUpStatus || 'Scheduled'
+      }));
+    }
+
+    // Fallback if backend is offline
+    await new Promise(r => setTimeout(r, 220));
     let filtered = [...patientsStore];
 
     if (filters.search) {
@@ -144,12 +212,33 @@ export const clinicianService = {
   },
 
   getPatientById: async (id) => {
-    await new Promise(res => setTimeout(res, 180));
-    return patientsStore.find(p => p.id === id) || null;
+    const res = await apiCall(`/api/patients/${id}`);
+    if (res && res.success && res.data) {
+      const p = res.data;
+      return {
+        id: p.patientIdentifier || p._id || p.id,
+        name: p.name,
+        ageGroup: p.ageGroup || '60-65',
+        latestAssessmentDate: p.latestAssessmentDate || 'Aug 26, 2026',
+        observedTrend: p.observedTrend || 'Stable',
+        riskLevel: p.riskLevel || 'Moderate',
+        status: p.status || 'Review',
+        assignedClinician: p.assignedClinicianName || 'Dr. Aris Thorne',
+        assessmentHistory: p.assessmentHistory || [
+          { id: 'ASM-9021', date: 'Aug 26, 2026', type: 'Motor & Vocal', trendScore: 42, risk: p.riskLevel || 'Moderate', result: 'Elevated Risk Pattern', modelOutput: 'Spiral Tremor Delta: +0.28' }
+        ],
+        nextFollowUp: p.nextFollowUp || 'Aug 30, 2026',
+        followUpStatus: p.followUpStatus || 'Scheduled'
+      };
+    }
+
+    // Fallback if backend is offline
+    await new Promise(r => setTimeout(r, 180));
+    return patientsStore.find(p => p.id === id || p.patientIdentifier === id) || null;
   },
 
   getAssessments: async () => {
-    await new Promise(res => setTimeout(res, 200));
+    await new Promise(r => setTimeout(r, 200));
 
     const allAssessments = [];
     patientsStore.forEach(p => {
@@ -166,7 +255,20 @@ export const clinicianService = {
   },
 
   getFollowUps: async () => {
-    await new Promise(res => setTimeout(res, 180));
+    const res = await apiCall('/api/followups');
+    if (res && res.success && Array.isArray(res.data)) {
+      return res.data.map(f => ({
+        patientId: f.patientId,
+        patientName: f.patientName || `Patient (${f.patientId})`,
+        followUpDate: f.scheduledDate || 'Aug 30, 2026',
+        status: f.status || 'Scheduled',
+        latestAssessmentDate: 'Aug 26, 2026',
+        observedTrend: 'Stable'
+      }));
+    }
+
+    // Fallback if backend is offline
+    await new Promise(r => setTimeout(r, 180));
     return patientsStore.map(p => ({
       patientId: p.id,
       patientName: p.name,
@@ -178,7 +280,11 @@ export const clinicianService = {
   },
 
   scheduleFollowUp: async (patientId, date, notes) => {
-    await new Promise(res => setTimeout(res, 250));
+    const res = await apiCall('/api/followups', {
+      method: 'POST',
+      body: JSON.stringify({ patientId, scheduledDate: date, notes })
+    });
+
     patientsStore = patientsStore.map(p => {
       if (p.id === patientId) {
         return {
@@ -189,6 +295,7 @@ export const clinicianService = {
       }
       return p;
     });
+
     return true;
   }
 };

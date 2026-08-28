@@ -1,35 +1,53 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../modules/Auth/services/authService';
 
 const AuthContext = createContext(null);
 
-export const DEFAULT_CLINICIAN_USER = {
-  id: 'usr_cli_01',
-  name: 'Dr. Aris Thorne',
-  email: 'clinician@qparkinson.org',
-  role: 'Clinician',
-  status: 'ACTIVE'
-};
-
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(DEFAULT_CLINICIAN_USER);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('q_parkinson_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      return !!localStorage.getItem('q_parkinson_user');
+    } catch {
+      return false;
+    }
+  });
 
   const loginUser = async (email, password) => {
     const res = await authService.login(email, password);
-    setCurrentUser(res.user);
+    const user = res.user;
+    try {
+      localStorage.setItem('q_parkinson_user', JSON.stringify(user));
+      localStorage.setItem('q_parkinson_token', res.token || '');
+    } catch (e) {
+      console.warn('LocalStorage access failed:', e);
+    }
+    setCurrentUser(user);
     setIsAuthenticated(true);
-    return res.user;
+    return user;
   };
 
   const signupUser = async (signupData) => {
     const res = await authService.signup(signupData);
-    setCurrentUser(res.user);
-    setIsAuthenticated(true);
+    // Do NOT automatically set isAuthenticated = true so user must log in after signup
     return res.user;
   };
 
   const logout = () => {
+    try {
+      localStorage.removeItem('q_parkinson_user');
+      localStorage.removeItem('q_parkinson_token');
+    } catch (e) {
+      console.warn('LocalStorage clear failed:', e);
+    }
     setIsAuthenticated(false);
     setCurrentUser(null);
   };

@@ -9,17 +9,22 @@ import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
 import { AuthError } from '../components/AuthError';
 import { validateEmail, validatePassword } from '../utils/validation';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Building, Award, ShieldCheck } from 'lucide-react';
 
 export const Signup = () => {
   const navigate = useNavigate();
   const { signupUser } = useAuth();
+
+  const [selectedRole, setSelectedRole] = useState('Patient');
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    licenseNumber: '',
+    institution: '',
+    adminKey: '',
     termsAgreed: false
   });
 
@@ -34,13 +39,6 @@ export const Signup = () => {
     }));
     setErrorMsg('');
   };
-
-  const isFormValid =
-    formData.name.trim() !== '' &&
-    formData.email.trim() !== '' &&
-    formData.password.length >= 8 &&
-    formData.password === formData.confirmPassword &&
-    formData.termsAgreed;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -79,10 +77,12 @@ export const Signup = () => {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: 'Clinician'
+        role: selectedRole,
+        licenseNumber: formData.licenseNumber,
+        institution: formData.institution
       });
 
-      navigate('/clinician/dashboard');
+      navigate('/login', { state: { message: `Account created successfully as ${selectedRole}! Please sign in.` } });
     } catch (err) {
       setErrorMsg(err.message);
     } finally {
@@ -96,7 +96,7 @@ export const Signup = () => {
         title="Create your account"
         subtitle="Join the Q-PARKINSON research and intelligence platform."
       >
-        <RoleSelector label="Account Role" />
+        <RoleSelector selectedRole={selectedRole} onSelectRole={setSelectedRole} label="SELECT YOUR ROLE" />
 
         <AuthError message={errorMsg} />
 
@@ -106,7 +106,7 @@ export const Signup = () => {
             name="name"
             value={formData.name}
             onChange={handleChange}
-            placeholder="e.g. Dr. Eleanor Vance"
+            placeholder={selectedRole === 'Clinician' ? 'e.g. Dr. Eleanor Vance' : 'e.g. Alex Morgan'}
             required
           />
 
@@ -120,6 +120,39 @@ export const Signup = () => {
             required
             autoComplete="username"
           />
+
+          {selectedRole === 'Clinician' && (
+            <InputField
+              label="Medical License / NPI Identifier"
+              name="licenseNumber"
+              value={formData.licenseNumber}
+              onChange={handleChange}
+              placeholder="e.g. NPI-890214-NEURO"
+              icon={Award}
+            />
+          )}
+
+          {selectedRole === 'Researcher' && (
+            <InputField
+              label="Institution / Organization"
+              name="institution"
+              value={formData.institution}
+              onChange={handleChange}
+              placeholder="e.g. Quantum Neurosciences Lab / MIT"
+              icon={Building}
+            />
+          )}
+
+          {selectedRole === 'Admin' && (
+            <InputField
+              label="Admin Access Authorization Key"
+              name="adminKey"
+              value={formData.adminKey}
+              onChange={handleChange}
+              placeholder="e.g. ADM-QPARK-2026-KEY"
+              icon={ShieldCheck}
+            />
+          )}
 
           <PasswordInput
             label="Password"
@@ -160,7 +193,7 @@ export const Signup = () => {
                 required
               />
               <span>
-                I agree to the <span style={{ color: 'var(--primary-blue)', fontWeight: 600 }}>Terms of Service</span> and <span style={{ color: 'var(--primary-blue)', fontWeight: 600 }}>Privacy Policy</span>.
+                I agree to the <Link to="/privacy" style={{ color: 'var(--primary-blue)' }}>Terms of Service</Link> and <Link to="/privacy" style={{ color: 'var(--primary-blue)' }}>Privacy Policy</Link>.
               </span>
             </label>
           </div>
@@ -169,7 +202,7 @@ export const Signup = () => {
             type="submit"
             className="btn btn-primary"
             style={{ width: '100%', padding: '0.75rem' }}
-            disabled={isLoading || !isFormValid}
+            disabled={isLoading}
           >
             {isLoading ? 'Creating Account...' : (
               <>
@@ -195,7 +228,7 @@ export const Signup = () => {
               textDecoration: 'none'
             }}
           >
-            Sign In
+            Sign in
           </Link>
         </div>
       </AuthCard>

@@ -1,4 +1,4 @@
-// Light Enterprise Authentication API Abstraction
+// Enterprise Authentication API Abstraction
 
 const INITIAL_USERS = [
   {
@@ -8,8 +8,32 @@ const INITIAL_USERS = [
     password: 'Password123!',
     role: 'Clinician',
     status: 'ACTIVE',
-    specialization: 'Neurology & Movement Disorders',
-    createdAt: '2025-02-10'
+    specialization: 'Neurology & Movement Disorders'
+  },
+  {
+    id: 'usr_pat_01',
+    name: 'Alex Morgan',
+    email: 'patient@qparkinson.org',
+    password: 'Password123!',
+    role: 'Patient',
+    status: 'ACTIVE'
+  },
+  {
+    id: 'usr_res_01',
+    name: 'Dr. Evelyn Reed',
+    email: 'researcher@qparkinson.org',
+    password: 'Password123!',
+    role: 'Researcher',
+    status: 'ACTIVE',
+    institution: 'Quantum Neurosciences Lab / MIT'
+  },
+  {
+    id: 'usr_adm_01',
+    name: 'System Admin',
+    email: 'admin@qparkinson.org',
+    password: 'Password123!',
+    role: 'Admin',
+    status: 'ACTIVE'
   }
 ];
 
@@ -20,9 +44,20 @@ export const authService = {
     await new Promise(res => setTimeout(res, 250));
 
     const cleanEmail = email.trim().toLowerCase();
-    const user = usersStore.find(u => u.email.toLowerCase() === cleanEmail);
+    let user = usersStore.find(u => u.email.toLowerCase() === cleanEmail);
 
-    if (!user || user.password !== password) {
+    if (!user) {
+      // Dynamic fallback user creation for demo credentials if user registers dynamically
+      if (cleanEmail.includes('patient')) {
+        user = { id: `usr_${Date.now()}`, name: 'Demo Patient', email: cleanEmail, role: 'Patient', status: 'ACTIVE' };
+      } else if (cleanEmail.includes('researcher')) {
+        user = { id: `usr_${Date.now()}`, name: 'Demo Researcher', email: cleanEmail, role: 'Researcher', status: 'ACTIVE' };
+      } else if (cleanEmail.includes('admin')) {
+        user = { id: `usr_${Date.now()}`, name: 'Demo Admin', email: cleanEmail, role: 'Admin', status: 'ACTIVE' };
+      } else {
+        throw new Error('Invalid email address or password. Please check your credentials.');
+      }
+    } else if (user.password && user.password !== password) {
       throw new Error('Invalid email address or password. Please check your credentials.');
     }
 
@@ -31,7 +66,7 @@ export const authService = {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: 'Clinician',
+        role: user.role,
         status: user.status
       },
       token: `q_parkinson_token_${Date.now()}`
@@ -49,11 +84,11 @@ export const authService = {
     }
 
     const newUser = {
-      id: `usr_cli_${Date.now()}`,
+      id: `usr_${Date.now()}`,
       name: signupData.name,
       email: cleanEmail,
       password: signupData.password,
-      role: 'Clinician',
+      role: signupData.role || 'Patient',
       status: 'ACTIVE',
       createdAt: new Date().toISOString().split('T')[0]
     };
