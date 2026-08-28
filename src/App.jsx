@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider, useApp } from './context/AppContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
-// Existing Patient Portal Components & Pages
+// Patient Portal Components & Pages
 import { PatientSidebar } from './components/PatientSidebar';
 import { PatientHeader } from './components/PatientHeader';
 import Dashboard from './pages/Dashboard';
@@ -62,7 +62,7 @@ function PatientAppShell() {
   );
 }
 
-// Root Route Redirect Handler
+// Root Route Redirect Handler: If authenticated, redirect to role dashboard; otherwise send to /login
 const RootRedirect = () => {
   const { currentUser, isAuthenticated } = useAuth();
 
@@ -88,15 +88,6 @@ const RootRedirect = () => {
   return <Navigate to="/clinician/dashboard" replace />;
 };
 
-// Login Route Guard: If already authenticated, redirect to role dashboard instead of showing login
-const LoginGuard = () => {
-  const { currentUser, isAuthenticated } = useAuth();
-  if (isAuthenticated && currentUser) {
-    return <RootRedirect />;
-  }
-  return <Login />;
-};
-
 export function App() {
   return (
     <AuthProvider>
@@ -106,8 +97,8 @@ export function App() {
             {/* Root Route: Always redirect unauthenticated users to /login */}
             <Route path="/" element={<RootRedirect />} />
 
-            {/* Authentication Routes */}
-            <Route path="/login" element={<LoginGuard />} />
+            {/* Authentication Routes - Always accessible */}
+            <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
