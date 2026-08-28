@@ -62,42 +62,14 @@ function PatientAppShell() {
   );
 }
 
-// Root Route Redirect Handler: If authenticated, redirect to role dashboard; otherwise send to /login
-const RootRedirect = () => {
-  const { currentUser, isAuthenticated } = useAuth();
-
-  if (!isAuthenticated || !currentUser) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const role = (currentUser?.role || '').toLowerCase();
-
-  if (role.includes('patient')) {
-    return <Navigate to="/patient/dashboard" replace />;
-  }
-  if (role.includes('doctor') || role.includes('clinician')) {
-    return <Navigate to="/clinician/dashboard" replace />;
-  }
-  if (role.includes('researcher')) {
-    return <Navigate to="/researcher/dashboard" replace />;
-  }
-  if (role.includes('admin')) {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-
-  return <Navigate to="/clinician/dashboard" replace />;
-};
-
 export function App() {
   return (
     <AuthProvider>
       <AppProvider>
         <Router>
           <Routes>
-            {/* Root Route: Always redirect unauthenticated users to /login */}
-            <Route path="/" element={<RootRedirect />} />
-
-            {/* Authentication Routes - Always accessible */}
+            {/* Root Route & Login Route: Always show Login page first */}
+            <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -157,8 +129,8 @@ export function App() {
               }
             />
 
-            {/* Fallback Catch-All Redirects to Root / */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Fallback Catch-All Redirects to /login */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Router>
       </AppProvider>
