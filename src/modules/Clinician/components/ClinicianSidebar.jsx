@@ -12,7 +12,8 @@ import {
   Atom,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Home
 } from 'lucide-react';
 import { BRAND_TEXT } from '../../Auth/utils/authConstants';
 
@@ -46,7 +47,8 @@ export const ClinicianSidebar = () => {
     {
       heading: 'SYSTEM',
       items: [
-        { label: 'Settings', path: '/clinician/settings', icon: Settings }
+        { label: 'Settings', path: '/clinician/settings', icon: Settings },
+        { label: 'Patient Portal', path: '/', icon: Home }
       ]
     }
   ];
