@@ -1,0 +1,46 @@
+
+.card {
+  background-color: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  margin-bottom: var(--space-6);
+}
+.card-title {
+  padding: var(--space-4) var(--space-6);
+  margin: 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: var(--text-h4);
+}
+.card-body {
+  padding: var(--space-6);
+}
+
+.metric-card {
+  background-color: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-card);
+}
+.metric-card.highlight {
+  border-bottom: 4px solid var(--accent-cyan);
+}
+.metric-title {
+  color: var(--text-secondary);
+  font-size: var(--text-small);
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
+.metric-value {
+  font-size: var(--text-h2);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+.metric-description {
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  margin-top: var(--space-2);
+}

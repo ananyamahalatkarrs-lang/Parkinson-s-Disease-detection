@@ -1,0 +1,83 @@
+/* Q-PARKINSON Design System Tokens */
+:root {
+  /* Base */
+  --bg-main: #F8FAFC;
+  --bg-white: #FFFFFF;
+  --bg-light-blue: #F3F7FF;
+  --bg-active: #EAF2FF;
+
+  /* Brand */
+  --brand-primary: #2563EB;
+  --brand-deep: #0F3D91;
+  --brand-bright: #3B82F6;
+
+  /* Quantum / AI Accents */
+  --accent-cyan: #06B6D4;
+  --accent-electric-cyan: #00E5FF;
+  --accent-violet: #7C3AED;
+  --accent-electric-violet: #8B5CF6;
+
+  /* Text */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --border-color: #E2E8F0;
+
+  /* Health / Status */
+  --status-success: #16A34A;
+  --status-warning: #F59E0B;
+  --status-danger: #EF4444;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Typography */
+  --font-primary: 'Inter', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  
+  --text-h1: 48px;
+  --text-h2: 32px;
+  --text-h3: 24px;
+  --text-h4: 18px;
+  --text-body: 14px;
+  --text-small: 12px;
+
+  /* UI Elements */
+  --radius-card: 14px;
+  --radius-btn: 10px;
+  --shadow-card: 0 4px 20px rgba(15,23,42,0.06);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-primary);
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { font-size: var(--text-h1); font-weight: 700; margin-bottom: var(--space-4); }
+h2 { font-size: var(--text-h2); font-weight: 600; margin-bottom: var(--space-4); }
+h3 { font-size: var(--text-h3); font-weight: 600; margin-bottom: var(--space-3); }
+h4 { font-size: var(--text-h4); font-weight: 500; margin-bottom: var(--space-2); }
+p { font-size: var(--text-body); line-height: 1.5; color: var(--text-secondary); }
+
+/* Layout Utilities */
+.app-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  padding: var(--space-8);
+  overflow-y: auto;
+}
