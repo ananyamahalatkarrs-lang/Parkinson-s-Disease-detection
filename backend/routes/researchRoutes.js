@@ -7,5 +7,6 @@ const router = express.Router();
 router.get('/datasets', protect, getDatasets);
 router.get('/experiments', protect, getExperiments);
 router.get('/comparison', protect, getModelComparison);
+router.get('/models', protect, getModelComparison);
 
 export default router;

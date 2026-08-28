@@ -1,4 +1,6 @@
-// Enterprise Authentication API Abstraction
+// Enterprise Authentication API Service with REST backend & offline fallback
+
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const INITIAL_USERS = [
   {
@@ -7,8 +9,7 @@ const INITIAL_USERS = [
     email: 'clinician@qparkinson.org',
     password: 'Password123!',
     role: 'Clinician',
-    status: 'ACTIVE',
-    specialization: 'Neurology & Movement Disorders'
+    status: 'ACTIVE'
   },
   {
     id: 'usr_pat_01',
@@ -24,8 +25,7 @@ const INITIAL_USERS = [
     email: 'researcher@qparkinson.org',
     password: 'Password123!',
     role: 'Researcher',
-    status: 'ACTIVE',
-    institution: 'Quantum Neurosciences Lab / MIT'
+    status: 'ACTIVE'
   },
   {
     id: 'usr_adm_01',
@@ -37,23 +37,58 @@ const INITIAL_USERS = [
   }
 ];
 
-let usersStore = [...INITIAL_USERS];
+let localUsersStore = [...INITIAL_USERS];
+
+async function authApiCall(endpoint, data) {
+  try {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Authentication request failed');
+    }
+
+    return json.data;
+  } catch (err) {
+    // Re-throw specific API business errors from backend (e.g. invalid credentials)
+    if (err.message && !err.message.toLowerCase().includes('failed to fetch')) {
+      throw err;
+    }
+    // Return null to signal network offline / server unreachable -> trigger fallback
+    return null;
+  }
+}
 
 export const authService = {
   login: async (email, password) => {
-    await new Promise(res => setTimeout(res, 250));
-
     const cleanEmail = email.trim().toLowerCase();
-    let user = usersStore.find(u => u.email.toLowerCase() === cleanEmail);
+
+    // 1. Try REST API endpoint first
+    const apiData = await authApiCall('/api/auth/login', { email: cleanEmail, password });
+    if (apiData) {
+      return {
+        user: apiData.user,
+        token: apiData.token
+      };
+    }
+
+    // 2. Fallback offline handling if backend server is not reachable
+    await new Promise(res => setTimeout(res, 200));
+    let user = localUsersStore.find(u => u.email.toLowerCase() === cleanEmail);
 
     if (!user) {
-      // Dynamic fallback user creation for demo credentials if user registers dynamically
       if (cleanEmail.includes('patient')) {
         user = { id: `usr_${Date.now()}`, name: 'Demo Patient', email: cleanEmail, role: 'Patient', status: 'ACTIVE' };
       } else if (cleanEmail.includes('researcher')) {
         user = { id: `usr_${Date.now()}`, name: 'Demo Researcher', email: cleanEmail, role: 'Researcher', status: 'ACTIVE' };
       } else if (cleanEmail.includes('admin')) {
         user = { id: `usr_${Date.now()}`, name: 'Demo Admin', email: cleanEmail, role: 'Admin', status: 'ACTIVE' };
+      } else if (cleanEmail.includes('doctor') || cleanEmail.includes('clinician')) {
+        user = { id: `usr_${Date.now()}`, name: 'Dr. Aris Thorne', email: cleanEmail, role: 'Clinician', status: 'ACTIVE' };
       } else {
         throw new Error('Invalid email address or password. Please check your credentials.');
       }
@@ -74,11 +109,26 @@ export const authService = {
   },
 
   signup: async (signupData) => {
-    await new Promise(res => setTimeout(res, 300));
-
     const cleanEmail = signupData.email.trim().toLowerCase();
-    const existing = usersStore.find(u => u.email.toLowerCase() === cleanEmail);
 
+    // 1. Try REST API endpoint first
+    const apiData = await authApiCall('/api/auth/signup', {
+      name: signupData.name,
+      email: cleanEmail,
+      password: signupData.password,
+      role: signupData.role || 'Patient'
+    });
+
+    if (apiData) {
+      return {
+        user: apiData.user,
+        token: apiData.token
+      };
+    }
+
+    // 2. Fallback offline handling if backend server is not reachable
+    await new Promise(res => setTimeout(res, 250));
+    const existing = localUsersStore.find(u => u.email.toLowerCase() === cleanEmail);
     if (existing) {
       throw new Error('An account with this email address already exists. Please sign in instead.');
     }
@@ -93,7 +143,7 @@ export const authService = {
       createdAt: new Date().toISOString().split('T')[0]
     };
 
-    usersStore.unshift(newUser);
+    localUsersStore.unshift(newUser);
 
     return {
       user: {

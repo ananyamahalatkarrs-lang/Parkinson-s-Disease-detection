@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -17,23 +17,80 @@ import {
 } from 'lucide-react';
 import { BRAND_TEXT } from '../modules/Auth/utils/authConstants';
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export default function AdminDashboard() {
   const [collapsed, setCollapsed] = useState(false);
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('users');
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const usersList = [
+  const [usersList, setUsersList] = useState([
     { name: 'Dr. Aris Thorne', email: 'clinician@qparkinson.org', role: 'Doctor / Clinician', status: 'ACTIVE', lastLogin: 'Aug 28, 2026 12:45' },
     { name: 'Alex Morgan', email: 'patient@qparkinson.org', role: 'Patient', status: 'ACTIVE', lastLogin: 'Aug 28, 2026 11:20' },
     { name: 'Dr. Evelyn Reed', email: 'researcher@qparkinson.org', role: 'Researcher', status: 'ACTIVE', lastLogin: 'Aug 27, 2026 16:10' },
     { name: 'System Admin', email: 'admin@qparkinson.org', role: 'Admin', status: 'ACTIVE', lastLogin: 'Aug 28, 2026 13:00' }
-  ];
+  ]);
+
+  const [systemTelemetry, setSystemTelemetry] = useState({
+    totalUsers: '4 Roles',
+    uptime: '99.98%',
+    activeModelVersion: 'v2.4-qsvc',
+    auditCount: '142 Events'
+  });
+
+  const [auditLogs, setAuditLogs] = useState([]);
+
+  useEffect(() => {
+    async function fetchAdminData() {
+      try {
+        const token = localStorage.getItem('q_parkinson_token');
+        const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+
+        const [usersRes, systemRes, logsRes] = await Promise.all([
+          fetch(`${BASE_URL}/api/users`, { headers }).then(r => r.ok ? r.json() : null),
+          fetch(`${BASE_URL}/api/admin/system`, { headers }).then(r => r.ok ? r.json() : null),
+          fetch(`${BASE_URL}/api/admin/audit-logs`, { headers }).then(r => r.ok ? r.json() : null)
+        ]);
+
+        if (usersRes && usersRes.success && Array.isArray(usersRes.data)) {
+          setUsersList(usersRes.data.map(u => ({
+            name: u.name,
+            email: u.email,
+            role: u.role === 'doctor' || u.role === 'Clinician' ? 'Doctor / Clinician' : u.role.charAt(0).toUpperCase() + u.role.slice(1),
+            status: u.status || 'ACTIVE',
+            lastLogin: u.lastLogin || 'Aug 28, 2026'
+          })));
+        }
+
+        if (systemRes && systemRes.success && systemRes.data) {
+          setSystemTelemetry(prev => ({
+            ...prev,
+            totalUsers: `${systemRes.data.totalUsers || 4} Registered Users`,
+            uptime: systemRes.data.uptime || prev.uptime,
+            activeModelVersion: systemRes.data.activeModelVersion || prev.activeModelVersion
+          }));
+        }
+
+        if (logsRes && logsRes.success && Array.isArray(logsRes.data)) {
+          setAuditLogs(logsRes.data);
+          setSystemTelemetry(prev => ({
+            ...prev,
+            auditCount: `${logsRes.data.length} Events`
+          }));
+        }
+      } catch (err) {
+        console.warn('Could not fetch admin telemetry:', err);
+      }
+    }
+
+    fetchAdminData();
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
@@ -188,22 +245,22 @@ export default function AdminDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
             <div className="card-base" style={{ padding: '1.25rem' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }} className="font-mono">REGISTERED USERS</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.25rem 0' }}>4 Roles</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.25rem 0' }}>{systemTelemetry.totalUsers}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Patient, Doctor, Researcher, Admin</div>
             </div>
             <div className="card-base" style={{ padding: '1.25rem' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }} className="font-mono">PLATFORM UPTIME</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--success)', margin: '0.25rem 0' }}>99.98%</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--success)', margin: '0.25rem 0' }}>{systemTelemetry.uptime}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Express + MongoDB Cluster</div>
             </div>
             <div className="card-base" style={{ padding: '1.25rem' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }} className="font-mono">ACTIVE MODEL RELEASE</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary-blue)', margin: '0.25rem 0' }}>v2.4-qsvc</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary-blue)', margin: '0.25rem 0' }}>{systemTelemetry.activeModelVersion}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Hybrid StateVector QML Engine</div>
             </div>
             <div className="card-base" style={{ padding: '1.25rem' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }} className="font-mono">AUDIT LOG TRAIL</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--violet)', margin: '0.25rem 0' }}>142 Events</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--violet)', margin: '0.25rem 0' }}>{systemTelemetry.auditCount}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Real-time IP & Action Telemetry</div>
             </div>
           </div>

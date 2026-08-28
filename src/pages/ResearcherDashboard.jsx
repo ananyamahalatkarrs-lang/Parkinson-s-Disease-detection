@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -19,11 +19,50 @@ import {
 } from 'lucide-react';
 import { BRAND_TEXT } from '../modules/Auth/utils/authConstants';
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export default function ResearcherDashboard() {
   const [collapsed, setCollapsed] = useState(false);
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+
+  const [telemetryData, setTelemetryData] = useState({
+    sampleCount: 195,
+    quantumFidelity: '98.4%',
+    hybridAccuracy: '94.2%',
+    qpuLatency: '42ms'
+  });
+  const [modelBenchmarks, setModelBenchmarks] = useState(null);
+
+  useEffect(() => {
+    async function fetchResearchData() {
+      try {
+        const token = localStorage.getItem('q_parkinson_token');
+        const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+
+        const [datasetsRes, benchmarksRes] = await Promise.all([
+          fetch(`${BASE_URL}/api/research/datasets`, { headers }).then(r => r.ok ? r.json() : null),
+          fetch(`${BASE_URL}/api/research/models`, { headers }).then(r => r.ok ? r.json() : null)
+        ]);
+
+        if (datasetsRes && datasetsRes.success && datasetsRes.data && datasetsRes.data[0]) {
+          setTelemetryData(prev => ({
+            ...prev,
+            sampleCount: datasetsRes.data[0].sampleCount || prev.sampleCount
+          }));
+        }
+
+        if (benchmarksRes && benchmarksRes.success && benchmarksRes.data) {
+          setModelBenchmarks(benchmarksRes.data);
+        }
+      } catch (err) {
+        console.warn('Could not fetch telemetry data:', err);
+      }
+    }
+
+    fetchResearchData();
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -187,22 +226,22 @@ export default function ResearcherDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
             <div className="card-base" style={{ padding: '1.25rem' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }} className="font-mono">DATASET SAMPLES</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.25rem 0' }}>195</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.25rem 0' }}>{telemetryData.sampleCount}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Oxford Voice Telemetry</div>
             </div>
             <div className="card-base" style={{ padding: '1.25rem' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }} className="font-mono">QUANTUM FIDELITY</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--success)', margin: '0.25rem 0' }}>98.4%</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--success)', margin: '0.25rem 0' }}>{telemetryData.quantumFidelity}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>StateVector Simulation</div>
             </div>
             <div className="card-base" style={{ padding: '1.25rem' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }} className="font-mono">HYBRID ACCURACY</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary-blue)', margin: '0.25rem 0' }}>94.2%</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary-blue)', margin: '0.25rem 0' }}>{telemetryData.hybridAccuracy}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>QSVC + Classical SVM</div>
             </div>
             <div className="card-base" style={{ padding: '1.25rem' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }} className="font-mono">QPU SIMULATION LATENCY</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--violet)', margin: '0.25rem 0' }}>42ms</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--violet)', margin: '0.25rem 0' }}>{telemetryData.qpuLatency}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>4-Qubit Circuit</div>
             </div>
           </div>
@@ -225,36 +264,44 @@ export default function ResearcherDashboard() {
               </thead>
               <tbody>
                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>Classical SVM (RBF Kernel)</td>
-                  <td style={{ padding: '0.75rem' }}>88.4%</td>
-                  <td style={{ padding: '0.75rem' }}>87.0%</td>
-                  <td style={{ padding: '0.75rem' }}>89.0%</td>
-                  <td style={{ padding: '0.75rem' }}>0.880</td>
-                  <td style={{ padding: '0.75rem' }}><span className="badge badge-info font-mono">ACTIVE</span></td>
+                  <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {modelBenchmarks?.classical_svm?.name || 'Classical SVM (RBF Kernel)'}
+                  </td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.classical_svm?.accuracy || '88.4%'}</td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.classical_svm?.precision || '87.0%'}</td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.classical_svm?.recall || '89.0%'}</td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.classical_svm?.f1Score || '0.880'}</td>
+                  <td style={{ padding: '0.75rem' }}><span className="badge badge-info font-mono">{modelBenchmarks?.classical_svm?.status || 'ACTIVE'}</span></td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>Random Forest (100 Trees)</td>
-                  <td style={{ padding: '0.75rem' }}>90.2%</td>
-                  <td style={{ padding: '0.75rem' }}>89.5%</td>
-                  <td style={{ padding: '0.75rem' }}>91.0%</td>
-                  <td style={{ padding: '0.75rem' }}>0.898</td>
-                  <td style={{ padding: '0.75rem' }}><span className="badge badge-info font-mono">ACTIVE</span></td>
+                  <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {modelBenchmarks?.random_forest?.name || 'Random Forest (100 Trees)'}
+                  </td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.random_forest?.accuracy || '90.2%'}</td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.random_forest?.precision || '89.5%'}</td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.random_forest?.recall || '91.0%'}</td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.random_forest?.f1Score || '0.898'}</td>
+                  <td style={{ padding: '0.75rem' }}><span className="badge badge-info font-mono">{modelBenchmarks?.random_forest?.status || 'ACTIVE'}</span></td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>Quantum QSVC (ZZFeatureMap)</td>
-                  <td style={{ padding: '0.75rem' }}>93.8%</td>
-                  <td style={{ padding: '0.75rem' }}>92.8%</td>
-                  <td style={{ padding: '0.75rem' }}>94.5%</td>
-                  <td style={{ padding: '0.75rem' }}>0.932</td>
-                  <td style={{ padding: '0.75rem' }}><span className="badge badge-cyan font-mono">QML ACTIVE</span></td>
+                  <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {modelBenchmarks?.quantum_qsvc?.name || 'Quantum QSVC (ZZFeatureMap)'}
+                  </td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.quantum_qsvc?.accuracy || '93.8%'}</td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.quantum_qsvc?.precision || '92.8%'}</td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.quantum_qsvc?.recall || '94.5%'}</td>
+                  <td style={{ padding: '0.75rem' }}>{modelBenchmarks?.quantum_qsvc?.f1Score || '0.932'}</td>
+                  <td style={{ padding: '0.75rem' }}><span className="badge badge-cyan font-mono">{modelBenchmarks?.quantum_qsvc?.status || 'QML ACTIVE'}</span></td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)' }}>Hybrid QSVC + Classical SVM</td>
-                  <td style={{ padding: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)' }}>94.2%</td>
-                  <td style={{ padding: '0.75rem', fontWeight: 700 }}>93.1%</td>
-                  <td style={{ padding: '0.75rem', fontWeight: 700 }}>95.0%</td>
-                  <td style={{ padding: '0.75rem', fontWeight: 700 }}>0.940</td>
-                  <td style={{ padding: '0.75rem' }}><span className="badge badge-violet font-mono">HYBRID BEST</span></td>
+                  <td style={{ padding: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)' }}>
+                    {modelBenchmarks?.hybrid_qsvc_svm?.name || 'Hybrid QSVC + Classical SVM'}
+                  </td>
+                  <td style={{ padding: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)' }}>{modelBenchmarks?.hybrid_qsvc_svm?.accuracy || '94.2%'}</td>
+                  <td style={{ padding: '0.75rem', fontWeight: 700 }}>{modelBenchmarks?.hybrid_qsvc_svm?.precision || '93.1%'}</td>
+                  <td style={{ padding: '0.75rem', fontWeight: 700 }}>{modelBenchmarks?.hybrid_qsvc_svm?.recall || '95.0%'}</td>
+                  <td style={{ padding: '0.75rem', fontWeight: 700 }}>{modelBenchmarks?.hybrid_qsvc_svm?.f1Score || '0.940'}</td>
+                  <td style={{ padding: '0.75rem' }}><span className="badge badge-violet font-mono">{modelBenchmarks?.hybrid_qsvc_svm?.status || 'HYBRID BEST'}</span></td>
                 </tr>
               </tbody>
             </table>

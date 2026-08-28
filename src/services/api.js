@@ -112,9 +112,15 @@ export const MOCK_RESULTS = [
 
 async function apiCall(endpoint, options = {}) {
   try {
+    const token = localStorage.getItem('q_parkinson_token');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {})
+    };
     const res = await fetch(`${BASE_URL}${endpoint}`, {
-      headers: { 'Content-Type': 'application/json' },
       ...options,
+      headers
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
